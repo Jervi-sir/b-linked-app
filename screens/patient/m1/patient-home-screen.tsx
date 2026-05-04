@@ -1,44 +1,166 @@
-import React from 'react';
+import React, { ReactNode, useEffect, useState } from 'react';
 import {
-  StyleSheet,
-  Text,
-  View,
-  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+  Dimensions,
   ScrollView,
   StatusBar,
-  TextInput,
-  Dimensions,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import {
-  Search,
-  Stethoscope,
-  Activity,
-  FlaskConical,
-  MapPin,
-  Home,
-  Calendar,
-  Menu,
-  ChevronLeft
-} from 'lucide-react-native';
+import { Activity, FlaskConical, MapPin, Search, Stethoscope } from 'lucide-react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
+import { api } from '@/utils/auth';
 import { Routes } from '@/utils/variables/routes';
 
 const { width } = Dimensions.get('window');
 
+type QuickActionItem = {
+  key: string;
+  label: string;
+  target: string;
+};
+
+type Suggestion = {
+  entity_type: 'doctor' | 'center';
+  entity_id: number;
+  title: string;
+  subtitle: string;
+  action_label: string;
+  primary: boolean;
+};
+
+type HomeResponse = {
+  banner: {
+    title: string;
+    text: string;
+  };
+  quick_actions: QuickActionItem[];
+  suggestions: Suggestion[];
+  pagination: {
+    current_page: number;
+    per_page: number;
+    total: number;
+    next_page: number | null;
+  };
+  meta: {
+    patient_name: string | null;
+  };
+};
+
+type QuickActionProps = {
+  icon: ReactNode;
+  label: string;
+  onPress: () => void;
+};
+
+type SuggestionItemProps = {
+  name: string;
+  specialty: string;
+  buttonLabel: string;
+  primary?: boolean;
+  onPress: () => void;
+};
+
+const quickActionIcons: Record<string, ReactNode> = {
+  doctors: <Stethoscope size={24} color="#1565c0" />,
+  radiology: <Activity size={24} color="#1565c0" />,
+  labs: <FlaskConical size={24} color="#1565c0" />,
+  nearby: <MapPin size={24} color="#1565c0" />,
+};
+
+const defaultBanner = {
+  title: 'قريب مني',
+  text: 'اعثر على الجهات الأقرب باستخدام موقعك الحالي.',
+};
+
 const PatientHomeScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
+  const [banner, setBanner] = useState(defaultBanner);
+  const [quickActions, setQuickActions] = useState<QuickActionItem[]>([]);
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [nextPage, setNextPage] = useState<number | null>(null);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  const handleQuickActionPress = (target: string) => {
+    if (target === 'patient_location') {
+      navigation.navigate(Routes.PatientLocationScreen);
+      return;
+    }
+
+    navigation.navigate(Routes.PatientResultsScreen);
+  };
+
+  const handleSuggestionPress = (suggestion: Suggestion) => {
+    if (suggestion.entity_type === 'doctor') {
+      navigation.navigate(Routes.PatientDoctorScreen);
+      return;
+    }
+
+    navigation.navigate(Routes.PatientCenterScreen);
+  };
+
+  const fetchHome = async (page = 1) => {
+    const { data } = await api.get<HomeResponse>('/patient/home', {
+      params: { page },
+    });
+
+    setBanner(data.banner);
+    setQuickActions(data.quick_actions);
+    setNextPage(data.pagination.next_page);
+    setSuggestions(current => (page === 1 ? data.suggestions : [...current, ...data.suggestions]));
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const load = async () => {
+      try {
+        await fetchHome();
+      } catch {
+        if (isMounted) {
+          Alert.alert('خطأ', 'تعذر تحميل بيانات الصفحة الرئيسية');
+        }
+      } finally {
+        if (isMounted) {
+          setIsInitialLoading(false);
+        }
+      }
+    };
+
+    load();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleLoadMore = async () => {
+    if (!nextPage || isLoadingMore) {
+      return;
+    }
+
+    try {
+      setIsLoadingMore(true);
+      await fetchHome(nextPage);
+    } catch {
+      Alert.alert('خطأ', 'تعذر تحميل المزيد من الاقتراحات');
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
 
-      {/* Header Section */}
-      <LinearGradient
-        colors={['#0d3f6a', '#1f88e5']}
-        style={styles.header}
-      >
+      <LinearGradient colors={['#0d3f6a', '#1f88e5']} style={styles.header}>
         <SafeAreaView edges={['top']}>
           <View style={styles.headerContent}>
             <View style={styles.headerTop}>
@@ -58,97 +180,82 @@ const PatientHomeScreen = () => {
         </SafeAreaView>
       </LinearGradient>
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Banner Section */}
-        <View style={styles.banner}>
-          <View style={styles.bannerInfo}>
-            <Text style={styles.bannerTitle}>قريب مني</Text>
-            <Text style={styles.bannerText}>اعثر على الجهات الأقرب باستخدام موقعك الحالي.</Text>
+      {isInitialLoading ? (
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator size="large" color="#1565c0" />
+        </View>
+      ) : (
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <View style={styles.banner}>
+            <View style={styles.bannerInfo}>
+              <Text style={styles.bannerTitle}>{banner.title}</Text>
+              <Text style={styles.bannerText}>{banner.text}</Text>
+            </View>
+            <LinearGradient colors={['#cae3ff', '#f8fbff']} style={styles.bannerArt} />
           </View>
-          <LinearGradient
-            colors={['#cae3ff', '#f8fbff']}
-            style={styles.bannerArt}
-          />
-        </View>
 
-        {/* Quick Actions Grid */}
-        <View style={styles.quickGrid}>
-          <QuickAction
-            icon={<Stethoscope size={24} color="#1565c0" />}
-            label="أطباء"
-            onPress={() => navigation.navigate(Routes.PatientResultsScreen)}
-          />
-          <QuickAction
-            icon={<Activity size={24} color="#1565c0" />}
-            label="أشعة"
-            onPress={() => navigation.navigate(Routes.PatientResultsScreen)}
-          />
-          <QuickAction
-            icon={<FlaskConical size={24} color="#1565c0" />}
-            label="مخابر"
-            onPress={() => navigation.navigate(Routes.PatientResultsScreen)}
-          />
-          <QuickAction
-            icon={<MapPin size={24} color="#1565c0" />}
-            label="قريب مني"
-            onPress={() => navigation.navigate(Routes.PatientLocationScreen)}
-          />
-        </View>
+          <View style={styles.quickGrid}>
+            {quickActions.map(action => (
+              <QuickAction
+                key={action.key}
+                icon={quickActionIcons[action.key] ?? <Stethoscope size={24} color="#1565c0" />}
+                label={action.label}
+                onPress={() => handleQuickActionPress(action.target)}
+              />
+            ))}
+          </View>
 
-        {/* Suggested Section */}
-        <Text style={styles.sectionTitle}>اقتراحات</Text>
+          <Text style={styles.sectionTitle}>اقتراحات</Text>
 
-        <View style={styles.list}>
-          <SuggestionItem
-            name="د. أمين بن صالح"
-            specialty="قلب · تقييم 4.9"
-            buttonLabel="عرض الملف"
-            primary
-            onPress={() => navigation.navigate(Routes.PatientDoctorScreen)}
-          />
-          <SuggestionItem
-            name="مركز الأمل للأشعة"
-            specialty="وهران · تصوير طبي"
-            buttonLabel="التفاصيل"
-            onPress={() => navigation.navigate(Routes.PatientCenterScreen)}
-          />
-        </View>
-      </ScrollView>
+          <View style={styles.list}>
+            {suggestions.map(suggestion => (
+              <SuggestionItem
+                key={`${suggestion.entity_type}-${suggestion.entity_id}`}
+                name={suggestion.title}
+                specialty={suggestion.subtitle}
+                buttonLabel={suggestion.action_label}
+                primary={suggestion.primary}
+                onPress={() => handleSuggestionPress(suggestion)}
+              />
+            ))}
+          </View>
 
+          {nextPage ? (
+            <TouchableOpacity
+              style={[styles.loadMoreBtn, isLoadingMore && styles.loadMoreBtnDisabled]}
+              onPress={handleLoadMore}
+              disabled={isLoadingMore}
+            >
+              <Text style={styles.loadMoreText}>
+                {isLoadingMore ? 'جارٍ التحميل...' : 'تحميل المزيد'}
+              </Text>
+            </TouchableOpacity>
+          ) : null}
+        </ScrollView>
+      )}
     </View>
   );
 };
 
-const QuickAction = ({ icon, label, onPress }) => (
+const QuickAction = ({ icon, label, onPress }: QuickActionProps) => (
   <TouchableOpacity style={styles.qAction} activeOpacity={0.7} onPress={onPress}>
     <View style={styles.qIconWrap}>{icon}</View>
     <Text style={styles.qLabel}>{label}</Text>
   </TouchableOpacity>
 );
 
-const SuggestionItem = ({ name, specialty, buttonLabel, primary = false, onPress }) => (
+const SuggestionItem = ({ name, specialty, buttonLabel, primary = false, onPress }: SuggestionItemProps) => (
   <View style={styles.item}>
     <View style={styles.itemInfo}>
       <Text style={styles.itemName}>{name}</Text>
       <Text style={styles.itemMeta}>{specialty}</Text>
-      <TouchableOpacity
-        style={[styles.itemBtn, !primary && styles.itemBtnOut]}
-        onPress={onPress}
-      >
+      <TouchableOpacity style={[styles.itemBtn, !primary && styles.itemBtnOut]} onPress={onPress}>
         <Text style={[styles.itemBtnText, !primary && styles.itemBtnTextOut]}>{buttonLabel}</Text>
       </TouchableOpacity>
     </View>
-    <LinearGradient
-      colors={['#d9ebff', '#f8fbff']}
-      style={styles.itemThumb}
-    />
+    <LinearGradient colors={['#d9ebff', '#f8fbff']} style={styles.itemThumb} />
   </View>
 );
-
-
 
 const styles = StyleSheet.create({
   container: {
@@ -195,6 +302,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     flex: 1,
     textAlign: 'right',
+  },
+  loadingWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   scrollContent: {
     padding: 16,
@@ -263,6 +375,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
     color: '#17324a',
+    textAlign: 'center',
   },
   sectionTitle: {
     fontSize: 16,
@@ -332,7 +445,22 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#dce9f6',
   },
-
+  loadMoreBtn: {
+    backgroundColor: '#1565c0',
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 16,
+  },
+  loadMoreBtnDisabled: {
+    opacity: 0.7,
+  },
+  loadMoreText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '800',
+  },
 });
 
 export default PatientHomeScreen;

@@ -1,10 +1,10 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Home, ClipboardList, FlaskConical, Settings } from 'lucide-react-native';
-import CenterHomeScreen from './center-home-screen';
-import CenterBookingsScreen from './center-bookings-screen';
-import CenterServicesScreen from './center-services-screen';
-import CenterProfileScreen from './center-profile-screen';
+import CenterHomeScreen from './m1/center-home-screen';
+import CenterBookingsScreen from './m2/center-bookings-screen';
+import CenterServicesScreen from './m3/center-services-screen';
+import CenterProfileScreen from './m4/center-profile-screen';
 import { Routes } from '@/utils/variables/routes';
 
 const Tab = createBottomTabNavigator();

@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
+  Alert,
   StyleSheet,
   Text,
   View,
@@ -9,13 +10,47 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Building2, Lock, LogIn, ChevronRight, ChevronLeft } from 'lucide-react-native';
+import { Building2, Lock, ChevronLeft } from 'lucide-react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import { Routes } from '@/utils/variables/routes';
+import { useAuthStore } from '@/zustand/auth-store';
+
+const getRouteForRole = (role?: string | null) => {
+  if (role === 'center') {
+    return Routes.CenterNavigation;
+  }
+
+  if (role === 'doctor') {
+    return Routes.DoctorNavigation;
+  }
+
+  return Routes.PatientNavigation;
+};
 
 const CenterLoginScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
+  const login = useAuthStore(state => state.login);
+  const isLoading = useAuthStore(state => state.isLoading);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  const handleLogin = async () => {
+    try {
+      const user = await login({
+        email: email.trim(),
+        password,
+      });
+
+      navigation.reset({
+        index: 0,
+        routes: [{ name: getRouteForRole(user.role) }],
+      });
+    } catch (error) {
+      Alert.alert('فشل تسجيل الدخول', error instanceof Error ? error.message : 'تعذر تسجيل الدخول');
+    }
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
@@ -43,6 +78,9 @@ const CenterLoginScreen = () => {
               <TextInput
                 style={styles.input}
                 placeholder="center@example.com"
+                autoCapitalize="none"
+                value={email}
+                onChangeText={setEmail}
                 textAlign="right"
               />
             </View>
@@ -56,16 +94,19 @@ const CenterLoginScreen = () => {
                 style={styles.input}
                 placeholder="********"
                 secureTextEntry
+                value={password}
+                onChangeText={setPassword}
                 textAlign="right"
               />
             </View>
           </View>
 
           <TouchableOpacity
-            style={styles.loginBtn}
-            onPress={() => navigation.navigate(Routes.CenterNavigation)}
+            style={[styles.loginBtn, isLoading && styles.loginBtnDisabled]}
+            onPress={handleLogin}
+            disabled={isLoading}
           >
-            <Text style={styles.loginBtnText}>تسجيل الدخول</Text>
+            <Text style={styles.loginBtnText}>{isLoading ? 'جارٍ تسجيل الدخول...' : 'تسجيل الدخول'}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -88,6 +129,7 @@ const styles = StyleSheet.create({
   inputWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fbfdff', borderRadius: 14, paddingHorizontal: 12, height: 52, borderWidth: 1, borderColor: '#dbe6f0' },
   input: { flex: 1, fontSize: 14, color: '#17324a' },
   loginBtn: { backgroundColor: '#0c7058', borderRadius: 16, paddingVertical: 16, flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 10 },
+  loginBtnDisabled: { opacity: 0.7 },
   loginBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
 });
 

@@ -3,6 +3,7 @@ export const Routes = {
   LandingScreen: "LandingScreen",
   UserSelectorScreen: "UserSelectorScreen",
 
+  PatientLoginScreen: "PatientLoginScreen",
   PatientNavigation: "PatientNavigation",
   PatientHomeScreen: "PatientHomeScreen",
   PatientSearchScreen: "PatientSearchScreen",

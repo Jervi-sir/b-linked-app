@@ -6,21 +6,22 @@ import { Routes } from '@/utils/variables/routes';
 import { BootScreen } from '@/screens/boot-screen';
 import LandingScreen from '@/screens/auth/landing-screen';
 import UserSelectorScreen from '@/screens/auth/user-selector-screen';
+import PatientLoginScreen from '@/screens/patient/patient-login-screen';
 import PatientHomeScreen from '@/screens/patient/m1/patient-home-screen';
-import DoctorHomeScreen from './screens/doctor/doctor-home-screen';
-import DoctorApptsScreen from './screens/doctor/doctor-appts-screen';
-import DoctorPatientsScreen from './screens/doctor/doctor-patients-screen';
-import DoctorProfileScreen from './screens/doctor/doctor-profile-screen';
+import DoctorHomeScreen from './screens/doctor/m1/doctor-home-screen';
+import DoctorApptsScreen from './screens/doctor/m2/doctor-appts-screen';
+import DoctorPatientsScreen from './screens/doctor/m3/doctor-patients-screen';
+import DoctorProfileScreen from './screens/doctor/m4/doctor-profile-screen';
 import DoctorLoginScreen from './screens/doctor/doctor-login-screen';
 import { DoctorNavigation } from './screens/doctor/doctor-navigation';
 import { CenterNavigation } from './screens/center/center-navigation';
 
 
 import CenterLoginScreen from './screens/center/center-login-screen';
-import CenterHomeScreen from './screens/center/center-home-screen';
-import CenterBookingsScreen from './screens/center/center-bookings-screen';
-import CenterServicesScreen from './screens/center/center-services-screen';
-import CenterProfileScreen from './screens/center/center-profile-screen';
+import CenterHomeScreen from './screens/center/m1/center-home-screen';
+import CenterBookingsScreen from './screens/center/m2/center-bookings-screen';
+import CenterServicesScreen from './screens/center/m3/center-services-screen';
+import CenterProfileScreen from './screens/center/m4/center-profile-screen';
 import PatientSearchScreen from './screens/patient/m2/patient-search-screen';
 import PatientBookingsScreen from './screens/patient/m3/patient-bookings-screen';
 import PatientCenterScreen from './screens/patient/patient-center-screen';
@@ -71,6 +72,7 @@ const AppContent = () => {
         { name: Routes.UserSelectorScreen, component: UserSelectorScreen, },
 
         // Patient
+        { name: Routes.PatientLoginScreen, component: PatientLoginScreen, },
         { name: Routes.PatientNavigation, component: PatientNavigation, },
         { name: Routes.PatientHomeScreen, component: PatientHomeScreen, },
 

@@ -11,7 +11,18 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { User, Stethoscope, Building2 } from 'lucide-react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
+import { ReactNode } from 'react';
 import { Routes } from '@/utils/variables/routes';
+
+type SelectorCardProps = {
+  title: string;
+  subtitle: string;
+  icon: ReactNode;
+  onPress: () => void;
+  color: string;
+  isVio?: boolean;
+  isTeal?: boolean;
+};
 
 const UserSelectorScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
@@ -36,7 +47,7 @@ const UserSelectorScreen = () => {
           title="دخول المرضى"
           subtitle="احجز موعدك بسهولة مع أفضل الأطباء"
           icon={<User size={28} color="#1565c0" />}
-          onPress={() => navigation.navigate(Routes.PatientNavigation)}
+          onPress={() => navigation.navigate(Routes.PatientLoginScreen)}
           color="#1565c0"
         />
 
@@ -62,7 +73,7 @@ const UserSelectorScreen = () => {
   );
 };
 
-const SelectorCard = ({ title, subtitle, icon, onPress, color, isVio = false, isTeal = false }) => (
+const SelectorCard = ({ title, subtitle, icon, onPress, color, isVio = false, isTeal = false }: SelectorCardProps) => (
   <TouchableOpacity
     style={[
       styles.card,
@@ -89,7 +100,7 @@ const styles = StyleSheet.create({
   logoEmoji: { fontSize: 40 },
   title: { fontSize: 24, fontWeight: '900', color: '#fff', marginBottom: 4 },
   subtitle: { fontSize: 13, color: 'rgba(255,255,255,0.8)' },
-  content: { padding: 20, gap: 16, marginTop: -20 },
+  content: { padding: 20, gap: 16 },
   card: { backgroundColor: '#fff', borderRadius: 24, padding: 20, flexDirection: 'row-reverse', alignItems: 'center', borderWidth: 1, borderColor: '#dbe6f0', shadowColor: '#1565c0', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 2 },
   cardVio: { shadowColor: '#394fd0' },
   cardTeal: { shadowColor: '#0c7058' },

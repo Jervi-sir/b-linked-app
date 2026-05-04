@@ -1,10 +1,10 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Home, Calendar, Users, UserCircle } from 'lucide-react-native';
-import DoctorHomeScreen from './doctor-home-screen';
-import DoctorApptsScreen from './doctor-appts-screen';
-import DoctorPatientsScreen from './doctor-patients-screen';
-import DoctorProfileScreen from './doctor-profile-screen';
+import DoctorHomeScreen from './m1/doctor-home-screen';
+import DoctorApptsScreen from './m2/doctor-appts-screen';
+import DoctorPatientsScreen from './m3/doctor-patients-screen';
+import DoctorProfileScreen from './m4/doctor-profile-screen';
 import { Routes } from '@/utils/variables/routes';
 
 const Tab = createBottomTabNavigator();
