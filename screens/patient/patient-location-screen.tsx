@@ -70,12 +70,12 @@ const PatientLocationScreen = () => {
               <Navigation size={18} color="#fff" />
               <Text style={styles.dirBtnText}>فتح في خرائط Google</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.detailsBtn}
-              onPress={() => navigation.navigate(Routes.PatientCenterScreen)}
-            >
-              <Text style={styles.detailsBtnText}>التفاصيل</Text>
-            </TouchableOpacity>
+             <TouchableOpacity
+               style={styles.detailsBtn}
+               onPress={() => navigation.navigate(Routes.PatientCenterScreen, { id: 1 })}
+             >
+               <Text style={styles.detailsBtnText}>التفاصيل</Text>
+             </TouchableOpacity>
           </View>
         </View>
       </View>

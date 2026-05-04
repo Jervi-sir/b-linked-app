@@ -1,22 +1,107 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  StyleSheet,
-  Text,
-  View,
-  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
   ScrollView,
   StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronRight, Search, MapPin, Star, ChevronLeft } from 'lucide-react-native';
+import { ChevronLeft, MapPin, Star } from 'lucide-react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useNavigation } from '@react-navigation/native';
+import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
+import { api } from '@/utils/auth';
 import { Routes } from '@/utils/variables/routes';
 
+type SearchResultItem = {
+  entity_type: 'doctor' | 'center';
+  entity_id: number;
+  name: string;
+  specialty: string;
+  location: string;
+  rating: string;
+  is_center: boolean;
+};
+
+type SearchResultsPayload = {
+  results: SearchResultItem[];
+  results_meta: {
+    query: string;
+    speciality_id: number | null;
+    total: number;
+  };
+};
+
+type ResultItemProps = {
+  name: string;
+  specialty: string;
+  location: string;
+  rating: string;
+  isCenter?: boolean;
+  onPress: () => void;
+};
 
 const PatientResultsScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
+  const route = useRoute<RouteProp<Record<string, { query?: string; specialityId?: number | null }>, string>>();
+  const [results, setResults] = useState<SearchResultItem[]>([]);
+  const [resultTitle, setResultTitle] = useState('كل النتائج');
+  const [total, setTotal] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const query = route.params?.query?.trim() ?? '';
+  const specialityId = route.params?.specialityId ?? null;
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadResults = async () => {
+      try {
+        const { data } = await api.get<SearchResultsPayload>('/patient/search', {
+          params: {
+            query,
+            speciality_id: specialityId,
+          },
+        });
+
+        if (!isMounted) {
+          return;
+        }
+
+        setResults(data.results);
+        setTotal(data.results_meta.total);
+        setResultTitle(data.results_meta.query || 'كل النتائج');
+      } catch {
+        if (isMounted) {
+          Alert.alert('خطأ', 'تعذر تحميل نتائج البحث');
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadResults();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [query, specialityId]);
+
+  const handleResultPress = (item: SearchResultItem) => {
+    if (item.is_center) {
+      navigation.navigate(Routes.PatientCenterScreen, { id: item.entity_id });
+      return;
+    }
+
+    navigation.navigate(Routes.PatientDoctorScreen, { id: item.entity_id });
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
@@ -29,47 +114,44 @@ const PatientResultsScreen = () => {
             </TouchableOpacity>
             <View>
               <Text style={styles.headerTitle}>نتائج البحث</Text>
-              <Text style={styles.headerSub}>أطباء قلب في وهران</Text>
+              <Text style={styles.headerSub}>{resultTitle}</Text>
             </View>
           </View>
         </SafeAreaView>
       </LinearGradient>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.resultsHeader}>
-          <Text style={styles.resultsCount}>تم العثور على 12 نتيجة</Text>
+      {isLoading ? (
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator size="large" color="#1565c0" />
         </View>
+      ) : (
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <View style={styles.resultsHeader}>
+            <Text style={styles.resultsCount}>تم العثور على {total} نتيجة</Text>
+          </View>
 
-        <View style={styles.list}>
-          <ResultItem
-            name="د. ياسين كمال"
-            specialty="جراحة القلب والشرايين"
-            location="وهران، حي العقيد لطفي"
-            rating="4.8"
-            onPress={() => navigation.navigate(Routes.PatientDoctorScreen)}
-          />
-          <ResultItem
-            name="د. سعاد مرابط"
-            specialty="طب القلب للأطفال"
-            location="وهران، وسط المدينة"
-            rating="4.9"
-            onPress={() => navigation.navigate(Routes.PatientDoctorScreen)}
-          />
-          <ResultItem
-            name="مركز الشفاء الطبي"
-            specialty="مجمع عيادات متخصص"
-            location="وهران، بير الجير"
-            rating="4.7"
-            isCenter
-            onPress={() => navigation.navigate(Routes.PatientCenterScreen)}
-          />
-        </View>
-      </ScrollView>
+          <View style={styles.list}>
+            {results.map(item => (
+              <ResultItem
+                key={`${item.entity_type}-${item.entity_id}`}
+                name={item.name}
+                specialty={item.specialty}
+                location={item.location}
+                rating={item.rating}
+                isCenter={item.is_center}
+                onPress={() => handleResultPress(item)}
+              />
+            ))}
+          </View>
+
+          {results.length === 0 ? <Text style={styles.emptyText}>لا توجد نتائج مطابقة حالياً</Text> : null}
+        </ScrollView>
+      )}
     </View>
   );
 };
 
-const ResultItem = ({ name, specialty, location, rating, isCenter = false, onPress }) => (
+const ResultItem = ({ name, specialty, location, rating, isCenter = false, onPress }: ResultItemProps) => (
   <TouchableOpacity style={styles.item} onPress={onPress}>
     <View style={styles.itemInfo}>
       <Text style={styles.itemName}>{name}</Text>
@@ -99,6 +181,7 @@ const styles = StyleSheet.create({
   backBtn: { marginLeft: 16 },
   headerTitle: { fontSize: 20, fontWeight: '900', color: '#fff', textAlign: 'right' },
   headerSub: { fontSize: 12, color: 'rgba(255, 255, 255, 0.8)', textAlign: 'right' },
+  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   scrollContent: { padding: 16 },
   resultsHeader: { marginBottom: 12 },
   resultsCount: { fontSize: 14, color: '#71869b', textAlign: 'right' },
@@ -115,6 +198,7 @@ const styles = StyleSheet.create({
   typeChip: { fontSize: 10, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, backgroundColor: '#eaf4ff', color: '#1565c0', fontWeight: '700' },
   typeChipCenter: { backgroundColor: '#eaf9f4', color: '#12916d' },
   itemThumb: { width: 80, height: 80, borderRadius: 16, backgroundColor: '#f8fbff', borderWidth: 1, borderColor: '#dce9f6' },
+  emptyText: { color: '#71869b', fontSize: 13, textAlign: 'center', marginTop: 24 },
 });
 
 export default PatientResultsScreen;

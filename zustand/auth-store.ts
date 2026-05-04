@@ -19,6 +19,7 @@ type RegisterPayload = {
 type LoginPayload = {
   email: string;
   password: string;
+  role?: 'patient' | 'doctor' | 'center';
 };
 
 type AuthStore = {
@@ -30,7 +31,10 @@ type AuthStore = {
   hydrate: () => Promise<AuthUser | null>;
   login: (payload: LoginPayload) => Promise<AuthUser>;
   registerPatient: (payload: RegisterPayload) => Promise<AuthUser>;
+  registerDoctor: (payload: RegisterPayload) => Promise<AuthUser>;
+  registerCenter: (payload: RegisterPayload) => Promise<AuthUser>;
   fetchMe: () => Promise<AuthUser>;
+  setUser: (user: AuthUser | null) => void;
   logout: () => Promise<void>;
   clearError: () => void;
 };
@@ -66,6 +70,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
   clearError: () => set({ error: null }),
 
+  setUser: user => set({ user }),
+
   hydrate: async () => {
     set({ isBootstrapping: true, error: null });
 
@@ -92,13 +98,14 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     }
   },
 
-  login: async ({ email, password }) => {
+  login: async ({ email, password, role }) => {
     set({ isLoading: true, error: null });
 
     try {
       const { data } = await api.post<AuthResponse>('/auth/login', {
         email,
         password,
+        role,
         device_name: 'linked-app',
       });
 
@@ -118,6 +125,46 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     try {
       const { data } = await api.post<AuthResponse>('/auth/register', {
         ...payload,
+        device_name: 'linked-app',
+      });
+
+      await persistSession(data.token, data.user);
+      set({ user: data.user, token: data.token, isLoading: false });
+      return data.user;
+    } catch (error) {
+      const message = getErrorMessage(error);
+      set({ isLoading: false, error: message });
+      throw new Error(message);
+    }
+  },
+
+  registerDoctor: async payload => {
+    set({ isLoading: true, error: null });
+
+    try {
+      const { data } = await api.post<AuthResponse>('/auth/register', {
+        ...payload,
+        role: 'doctor',
+        device_name: 'linked-app',
+      });
+
+      await persistSession(data.token, data.user);
+      set({ user: data.user, token: data.token, isLoading: false });
+      return data.user;
+    } catch (error) {
+      const message = getErrorMessage(error);
+      set({ isLoading: false, error: message });
+      throw new Error(message);
+    }
+  },
+
+  registerCenter: async payload => {
+    set({ isLoading: true, error: null });
+
+    try {
+      const { data } = await api.post<AuthResponse>('/auth/register', {
+        ...payload,
+        role: 'center',
         device_name: 'linked-app',
       });
 

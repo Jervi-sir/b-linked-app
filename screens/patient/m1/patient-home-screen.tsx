@@ -99,11 +99,11 @@ const PatientHomeScreen = () => {
 
   const handleSuggestionPress = (suggestion: Suggestion) => {
     if (suggestion.entity_type === 'doctor') {
-      navigation.navigate(Routes.PatientDoctorScreen);
+      navigation.navigate(Routes.PatientDoctorScreen, { id: suggestion.entity_id });
       return;
     }
 
-    navigation.navigate(Routes.PatientCenterScreen);
+    navigation.navigate(Routes.PatientCenterScreen, { id: suggestion.entity_id });
   };
 
   const fetchHome = async (page = 1) => {

@@ -1,107 +1,197 @@
-import React from 'react';
+import React, { ReactNode, useEffect, useState } from 'react';
 import {
-  StyleSheet,
-  Text,
-  View,
-  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+  Dimensions,
   ScrollView,
   StatusBar,
-  Dimensions,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronRight, MapPin, Star, Clock, Phone, FlaskConical, Activity } from 'lucide-react-native';
+import { Activity, ChevronLeft, ChevronRight, Clock, FlaskConical, MapPin, Phone, Star } from 'lucide-react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useNavigation } from '@react-navigation/native';
+import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
+import { api } from '@/utils/auth';
 import { Routes } from '@/utils/variables/routes';
-
 
 const { width } = Dimensions.get('window');
 
+type CenterService = {
+  id: number;
+  name: string;
+  price: string | number | null;
+  duration_minutes: number | null;
+};
+
+type CenterPayload = {
+  center: {
+    id: number;
+    name: string;
+    type: string;
+    description: string | null;
+    rating: string;
+    reviews_count: number;
+    emergency_label: string;
+    distance: string | null;
+    address: string | null;
+    city: string | null;
+    phone: string | null;
+    working_hours: string;
+    services: CenterService[];
+  };
+};
+
+type ServiceChipProps = {
+  label: string;
+};
+
+type InfoRowProps = {
+  icon: ReactNode;
+  text: string;
+};
+
 const PatientCenterScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
+  const route = useRoute<RouteProp<Record<string, { id?: number }>, string>>();
+  const centerId = route.params?.id;
+  const [center, setCenter] = useState<CenterPayload['center'] | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadCenter = async () => {
+      if (!centerId) {
+        Alert.alert('خطأ', 'معرف المركز غير متوفر');
+        navigation.goBack();
+        return;
+      }
+
+      try {
+        const { data } = await api.get<CenterPayload>(`/patient/centers/${centerId}`);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setCenter(data.center);
+      } catch {
+        if (isMounted) {
+          Alert.alert('خطأ', 'تعذر تحميل بيانات المركز');
+          navigation.goBack();
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadCenter();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [centerId, navigation]);
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
 
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Banner/Image */}
-        <LinearGradient colors={['#0c7058', '#12916d']} style={styles.banner}>
-          <SafeAreaView edges={['top']}>
-            <View style={styles.navBar}>
-              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-                <ChevronRight size={24} color="#fff" />
-              </TouchableOpacity>
-            </View>
-          </SafeAreaView>
-          <View style={styles.bannerContent}>
-            <View style={styles.centerLogo}>
-              <FlaskConical size={32} color="#12916d" />
-            </View>
-            <Text style={styles.centerName}>مركز الشفاء الطبي</Text>
-            <Text style={styles.centerType}>مجمع عيادات وتحاليل طبية</Text>
-          </View>
-        </LinearGradient>
-
-        <View style={styles.content}>
-          <View style={styles.statsRow}>
-            <View style={styles.statBox}>
-              <Star size={18} color="#ffb400" fill="#ffb400" />
-              <Text style={styles.statVal}>4.7</Text>
-              <Text style={styles.statLab}>تقييم</Text>
-            </View>
-            <View style={styles.statBox}>
-              <Activity size={18} color="#12916d" />
-              <Text style={styles.statVal}>24/7</Text>
-              <Text style={styles.statLab}>طوارئ</Text>
-            </View>
-            <View style={styles.statBox}>
-              <MapPin size={18} color="#12916d" />
-              <Text style={styles.statVal}>2km</Text>
-              <Text style={styles.statLab}>مسافة</Text>
-            </View>
-          </View>
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>الخدمات المتاحة</Text>
-            <View style={styles.servicesGrid}>
-              <ServiceChip label="تحاليل دم" />
-              <ServiceChip label="أشعة X" />
-              <ServiceChip label="تخطيط قلب" />
-              <ServiceChip label="فحص شامل" />
-            </View>
-          </View>
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>الموقع وساعات العمل</Text>
-            <View style={styles.infoCard}>
-              <InfoRow icon={<MapPin size={18} color="#12916d" />} text="وهران، بير الجير - مقابل بلدية بير الجير" />
-              <InfoRow icon={<Clock size={18} color="#12916d" />} text="مفتوح على مدار الساعة (قسم الطوارئ)" />
-              <InfoRow icon={<Phone size={18} color="#12916d" />} text="041 12 34 56" />
-            </View>
-          </View>
+      {isLoading || !center ? (
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator size="large" color="#12916d" />
         </View>
-      </ScrollView>
+      ) : (
+        <>
+          <ScrollView showsVerticalScrollIndicator={false}>
+            <LinearGradient colors={['#0c7058', '#12916d']} style={styles.banner}>
+              <SafeAreaView edges={['top']} style={styles.safeHeader}>
+                <View>
+                  <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                    <ChevronLeft size={24} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+              </SafeAreaView>
+              <View style={styles.bannerContent}>
+                <View style={styles.centerLogo}>
+                  <FlaskConical size={32} color="#12916d" />
+                </View>
+                <Text style={styles.centerName}>{center.name}</Text>
+                <Text style={styles.centerType}>{center.type}</Text>
+              </View>
+            </LinearGradient>
 
-      <View style={styles.footer}>
-        <TouchableOpacity
-          style={styles.actionBtn}
-          onPress={() => navigation.navigate(Routes.PatientFormScreen)}
-        >
-          <Text style={styles.actionBtnText}>حجز فحص / تحاليل</Text>
-        </TouchableOpacity>
-      </View>
+            <View style={styles.content}>
+              <View style={styles.statsRow}>
+                <View style={styles.statBox}>
+                  <Star size={18} color="#ffb400" fill="#ffb400" />
+                  <Text style={styles.statVal}>{center.rating}</Text>
+                  <Text style={styles.statLab}>تقييم</Text>
+                </View>
+                <View style={styles.statBox}>
+                  <Activity size={18} color="#12916d" />
+                  <Text style={styles.statVal}>{center.emergency_label}</Text>
+                  <Text style={styles.statLab}>طوارئ</Text>
+                </View>
+                <View style={styles.statBox}>
+                  <MapPin size={18} color="#12916d" />
+                  <Text style={styles.statVal}>{center.distance ?? '-'}</Text>
+                  <Text style={styles.statLab}>مسافة</Text>
+                </View>
+              </View>
+
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>الخدمات المتاحة</Text>
+                <View style={styles.servicesGrid}>
+                  {center.services.map(service => (
+                    <ServiceChip key={service.id} label={service.name} />
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>الموقع وساعات العمل</Text>
+                <View style={styles.infoCard}>
+                  <InfoRow
+                    icon={<MapPin size={18} color="#12916d" />}
+                    text={[center.city, center.address].filter(Boolean).join(' - ') || 'العنوان غير متوفر'}
+                  />
+                  <InfoRow icon={<Clock size={18} color="#12916d" />} text={center.working_hours} />
+                  <InfoRow icon={<Phone size={18} color="#12916d" />} text={center.phone ?? 'رقم الهاتف غير متوفر'} />
+                </View>
+              </View>
+            </View>
+          </ScrollView>
+
+          <View style={styles.footer}>
+            <TouchableOpacity
+              style={styles.actionBtn}
+              onPress={() => navigation.navigate(Routes.PatientFormScreen, {
+                bookableType: 'center',
+                bookableId: center.id,
+              })}
+            >
+              <Text style={styles.actionBtnText}>حجز فحص / تحاليل</Text>
+            </TouchableOpacity>
+          </View>
+        </>
+      )}
     </View>
   );
 };
 
-const ServiceChip = ({ label }) => (
+const ServiceChip = ({ label }: ServiceChipProps) => (
   <View style={styles.serviceChip}>
     <Text style={styles.serviceText}>{label}</Text>
   </View>
 );
 
-const InfoRow = ({ icon, text }) => (
+const InfoRow = ({ icon, text }: InfoRowProps) => (
   <View style={styles.infoRow}>
     {icon}
     <Text style={styles.infoRowText}>{text}</Text>
@@ -110,8 +200,10 @@ const InfoRow = ({ icon, text }) => (
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f4f8fc' },
+  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   banner: { height: 260, borderBottomLeftRadius: 40, borderBottomRightRadius: 40 },
   navBar: { width: '100%', paddingHorizontal: 20, paddingTop: 10, flexDirection: 'row-reverse' },
+  safeHeader: { width: '100%', paddingHorizontal: 20 },
   backBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
   bannerContent: { alignItems: 'center', marginTop: 10 },
   centerLogo: { width: 70, height: 70, borderRadius: 24, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
@@ -120,7 +212,7 @@ const styles = StyleSheet.create({
   content: { padding: 20, paddingBottom: 100 },
   statsRow: { flexDirection: 'row-reverse', justifyContent: 'space-between', marginBottom: 24, marginTop: -50 },
   statBox: { width: (width - 60) / 3, backgroundColor: '#fff', borderRadius: 20, padding: 12, alignItems: 'center', borderWidth: 1, borderColor: '#dbe6f0', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 4 },
-  statVal: { fontSize: 15, fontWeight: '800', color: '#17324a', marginTop: 4 },
+  statVal: { fontSize: 15, fontWeight: '800', color: '#17324a', marginTop: 4, textAlign: 'center' },
   statLab: { fontSize: 10, color: '#71869b' },
   section: { marginBottom: 24 },
   sectionTitle: { fontSize: 16, fontWeight: '900', color: '#17324a', marginBottom: 12, textAlign: 'right' },

@@ -74,12 +74,76 @@ export type AuthUser = {
   phone: string | null;
   role: "patient" | "doctor" | "center";
   is_active: boolean;
+  profile_complete: boolean;
   email_verified_at: string | null;
   created_at: string | null;
   updated_at: string | null;
-  patient?: Record<string, unknown> | null;
-  doctor?: Record<string, unknown> | null;
+  patient?: PatientProfile | null;
+  doctor?: DoctorProfile | null;
   center?: Record<string, unknown> | null;
+};
+
+export type PatientProfile = {
+  id: number;
+  user_id: number;
+  date_of_birth: string | null;
+  gender: 'male' | 'female' | null;
+  address: string | null;
+  city: string | null;
+  medical_notes: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type DoctorQualification = {
+  id: number;
+  doctor_id: number;
+  title: string;
+  institution: string | null;
+  year: number | null;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type DoctorSchedule = {
+  id: number;
+  day_of_week: number;
+  start_time: string | null;
+  end_time: string | null;
+  is_active: boolean;
+};
+
+export type DoctorTimeSlot = {
+  id: number;
+  doctor_id: number;
+  slot_date: string | null;
+  start_time: string | null;
+  end_time: string | null;
+  is_available: boolean;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type DoctorProfile = {
+  id: number;
+  user_id: number;
+  specialty_id: number | null;
+  moderation_status: string;
+  license_number: string | null;
+  years_experience: string | null;
+  phone_public: string | null;
+  bio: string | null;
+  address: string | null;
+  city: string | null;
+  rating: string | number;
+  reviews_count: number;
+  is_available: boolean;
+  created_at: string | null;
+  updated_at: string | null;
+  qualifications?: DoctorQualification[] | null;
+  schedules?: DoctorSchedule[] | null;
+  time_slots?: DoctorTimeSlot[] | null;
+  speciality?: Record<string, unknown> | null;
 };
 
 export type AuthResponse = {

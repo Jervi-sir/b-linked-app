@@ -19,7 +19,9 @@ import { useAuthStore } from '@/zustand/auth-store';
 
 const CenterProfileScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
+  const user = useAuthStore(state => state.user);
   const logout = useAuthStore(state => state.logout);
+  const isProfileComplete = user?.profile_complete ?? true;
 
   const handleLogout = async () => {
     try {
@@ -49,9 +51,10 @@ const CenterProfileScreen = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>إعدادات المركز</Text>
           <View style={styles.menuCard}>
-            <MenuItem icon={<Building2 size={20} color="#0c7058" />} label="البيانات الأساسية" />
-            <MenuItem icon={<MapPin size={20} color="#0c7058" />} label="الموقع والخرائط" />
-            <MenuItem icon={<Settings size={20} color="#0c7058" />} label="ساعات العمل" />
+            <MenuItem icon={<Building2 size={20} color="#0c7058" />} label={isProfileComplete ? 'البيانات الأساسية' : 'استكمال ملف المركز'} onPress={() => navigation.navigate(Routes.CenterBasicDataScreen)} />
+            <MenuItem icon={<MapPin size={20} color="#0c7058" />} label="الموقع والخرائط" onPress={() => navigation.navigate(Routes.CenterLocationScreen)} />
+            <MenuItem icon={<Settings size={20} color="#0c7058" />} label="ساعات العمل" onPress={() => navigation.navigate(Routes.CenterWorkingHoursScreen)} />
+            {!isProfileComplete ? <MenuItem icon={<Shield size={20} color="#0c7058" />} label="عرض البيانات الناقصة" onPress={() => navigation.navigate(Routes.CenterProfileOnboardingScreen)} /> : null}
           </View>
         </View>
 
@@ -78,10 +81,11 @@ const CenterProfileScreen = () => {
 type MenuItemProps = {
   icon: ReactNode;
   label: string;
+  onPress?: () => void;
 };
 
-const MenuItem = ({ icon, label }: MenuItemProps) => (
-  <TouchableOpacity style={styles.menuItem}>
+const MenuItem = ({ icon, label, onPress }: MenuItemProps) => (
+  <TouchableOpacity style={styles.menuItem} onPress={onPress}>
     <ChevronLeft size={18} color="#8498ab" />
     <Text style={styles.menuLabel}>{label}</Text>
     <View style={styles.menuIconWrap}>{icon}</View>

@@ -10,12 +10,29 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CheckCircle, Home, Calendar } from 'lucide-react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useNavigation } from '@react-navigation/native';
+import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { Routes } from '@/utils/variables/routes';
 
 
 const PatientSuccessScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
+  const route = useRoute<RouteProp<Record<string, { reference?: string }>, string>>();
+  const reference = route.params?.reference ?? 'غير متوفر';
+
+  const openPatientTab = (screen: string) => {
+    navigation.reset({
+      index: 0,
+      routes: [
+        {
+          name: Routes.PatientNavigation,
+          params: {
+            screen,
+          },
+        },
+      ],
+    });
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" />
@@ -29,14 +46,13 @@ const PatientSuccessScreen = () => {
 
         <Text style={styles.title}>تم الحجز بنجاح!</Text>
         <Text style={styles.subtitle}>
-          رقم الحجز الخاص بك هو BK-2026-0211. يمكنك متابعة حالة طلبك من خلال صفحة حجوزاتي.
+          رقم الحجز الخاص بك هو {reference}. يمكنك متابعة حالة طلبك من خلال صفحة حجوزاتي.
         </Text>
 
         <View style={styles.buttonGroup}>
           <TouchableOpacity
             style={styles.primaryBtn}
-            // TODO navigate to menu then this tab
-            onPress={() => navigation.navigate(Routes.PatientBookingsScreen)}
+            onPress={() => openPatientTab(Routes.PatientBookingsScreen)}
           >
             <Calendar size={20} color="#fff" />
             <Text style={styles.primaryBtnText}>اذهب إلى حجوزاتي</Text>
@@ -44,8 +60,7 @@ const PatientSuccessScreen = () => {
 
           <TouchableOpacity
             style={styles.secondaryBtn}
-            // TODO navigate to menu then this tab
-            onPress={() => navigation.navigate(Routes.PatientHomeScreen)}
+            onPress={() => openPatientTab(Routes.PatientHomeScreen)}
           >
             <Home size={20} color="#1565c0" />
             <Text style={styles.secondaryBtnText}>العودة للرئيسية</Text>
