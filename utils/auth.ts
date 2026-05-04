@@ -9,8 +9,12 @@ const getApiBaseUrl = () => {
     return explicitUrl.replace(/\/$/, "");
   }
 
-  const hostUri = "192.168.1.105"; // (Constants.expoConfig as { hostUri?: string } | null | undefined)?.hostUri;
-  const host = hostUri?.split(":")[0];
+  // Quick toggle: "192.168.1.105" or "b-linked.jervi.dev"
+  const host: string = "192.168.1.105"; 
+
+  if (host === "b-linked.jervi.dev") {
+    return `https://${host}/api`;
+  }
 
   if (host) {
     return `http://${host}:8000/api`;
@@ -87,7 +91,7 @@ export type PatientProfile = {
   id: number;
   user_id: number;
   date_of_birth: string | null;
-  gender: 'male' | 'female' | null;
+  gender: "male" | "female" | null;
   address: string | null;
   city: string | null;
   medical_notes: string | null;
